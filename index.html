@@ -1880,7 +1880,7 @@ async function refreshRemoteData(showError = true) {
             return;
         }
 
-        const validPassword = pendingMenu === 'approval' ? 'manager123' : 'kas123';
+        const validPassword = pendingMenu === 'approval' ? 'kodenya2026' : 'mztxa2026';
 
         if (password === validPassword) {
             const target = pendingMenu;
@@ -2296,8 +2296,8 @@ function updateDashboard() {
                 <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${t.type === 'income' ? '+' : '-'}Rp ${Number(t.amount || 0).toLocaleString('id-ID')}</td>
                 <td>${escapeHtml(t.note || t.keterangan || t.description || '-')}</td>
                 <td>
-                    <button class="btn btn-small btn-success" onclick="verifyTransaction(${JSON.stringify(String(t.id))})">✅ Verifikasi</button>
-                    <button class="btn btn-small btn-danger" onclick="rejectTransaction(${JSON.stringify(String(t.id))})">❌ Tolak</button>
+                    <button class="btn btn-small btn-success" onclick="verifyTransaction('${String(t.id)}')">✅ Verifikasi</button>
+                    <button class="btn btn-small btn-danger" onclick="rejectTransaction('${String(t.id)}')">❌ Tolak</button>
                 </td>
             </tr>`;
         });
@@ -2372,8 +2372,8 @@ function updateDashboard() {
                 <td>${l.purpose}</td>
                 <td>${new Date(l.date).toLocaleDateString('id-ID')}</td>
                 <td>${l.status === 'pending' ? `
-                    <button class="btn btn-small btn-success" onclick="approveLoan(${JSON.stringify(String(l.id))})">✅ Setujui</button>
-                    <button class="btn btn-small btn-danger" onclick="rejectLoan(${JSON.stringify(String(l.id))})">❌ Tolak</button>
+                    <button class="btn btn-small btn-success" onclick="approveLoan('${String(l.id)}')">✅ Setujui</button>
+                    <button class="btn btn-small btn-danger" onclick="rejectLoan('${String(l.id)}')">❌ Tolak</button>
                 ` : `<span class="badge ${l.status === 'approved' ? 'badge-success' : 'badge-danger'}">${l.status === 'approved' ? 'Disetujui' : 'Ditolak'}</span>`}</td>
             </tr>`;
         });
