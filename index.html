@@ -1,0 +1,2422 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manajemen Kas - KOMIDA Ciledug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --primary-light: #e0e7ff;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --secondary: #64748b;
+            --light: #f8fafc;
+            --border: #e2e8f0;
+            --text: #1e293b;
+            --text-light: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--light);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* LOGIN PAGE */
+        .login-container {
+            display: none;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container.active {
+            display: flex;
+        }
+
+        .login-box {
+            background: white;
+            border-radius: 20px;
+            padding: 50px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .login-header h1 {
+            font-size: 32px;
+            color: var(--text);
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: var(--text-light);
+            font-size: 15px;
+        }
+
+        .role-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .role-btn {
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+        }
+
+        .role-btn-staff {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .role-btn-staff:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .role-btn-manager {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .role-btn-manager:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(245, 158, 11, 0.3);
+        }
+
+        .login-footer {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--text-light);
+            font-size: 13px;
+        }
+
+        /* MAIN DASHBOARD */
+        .app-wrapper {
+            display: none;
+            min-height: 100vh;
+            background: var(--light);
+        }
+
+        .app-wrapper.active {
+            display: flex;
+        }
+
+        /* HAMBURGER BUTTON */
+        .hamburger-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--text);
+            padding: 10px 15px;
+            margin-right: 10px;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 260px;
+            background: white;
+            border-right: 1px solid var(--border);
+            padding: 30px 0;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .sidebar.closed {
+            margin-left: -260px;
+            width: 260px;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 99;
+        }
+
+        .sidebar-overlay.active {
+            display: block;
+        }
+
+        .sidebar-brand {
+            padding: 0 20px 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .brand-icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+
+        .brand-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .brand-desc {
+            font-size: 12px;
+            color: var(--text-light);
+        }
+
+        .sidebar-user {
+            padding: 15px 20px;
+            margin: 0 10px 20px;
+            background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+        }
+
+        .user-role {
+            font-size: 11px;
+            color: var(--primary);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .sidebar-menu {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-bottom: 30px;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-light);
+            font-weight: 500;
+            position: relative;
+            margin: 0 10px;
+            border-radius: 8px;
+        }
+
+        .menu-icon {
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        .menu-item:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .menu-item.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .menu-item.restricted {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .approval-submenu {
+            display: none;
+            margin: -4px 0 10px 18px;
+            padding-left: 12px;
+            border-left: 2px solid #e5e7eb;
+        }
+        .approval-submenu.open { display: block; }
+        .approval-subitem {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 10px 12px;
+            margin: 3px 0;
+            border-radius: 10px;
+            color: var(--text-light);
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .approval-subitem:hover, .approval-subitem.active {
+            background: #f1f3ff;
+            color: var(--primary);
+        }
+        .approval-count {
+            margin-left: auto;
+            min-width: 20px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            background: #fee2e2;
+            color: #b91c1c;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        .menu-item.restricted:hover {
+            background: transparent;
+            color: var(--text-light);
+        }
+
+        .lock-icon {
+            font-size: 10px;
+            margin-left: auto;
+        }
+
+        .sidebar-footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn-logout {
+            padding: 10px 16px;
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-logout:hover {
+            background: #fecaca;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .topbar {
+            background: white;
+            border-bottom: 1px solid var(--border);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .topbar-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .topbar-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .btn-action {
+            padding: 8px 16px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-action:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .content {
+            padding: 30px;
+            flex: 1;
+        }
+
+        /* QUICK STATS */
+        .quick-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.income {
+            border-left-color: var(--success);
+        }
+
+        .stat-card.expense {
+            border-left-color: var(--danger);
+        }
+
+        .stat-card.pending {
+            border-left-color: var(--warning);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .stat-detail {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        /* GRID LAYOUT */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        /* CARD */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border: 1px solid var(--border);
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title-icon {
+            font-size: 22px;
+        }
+
+        /* FORM */
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 11px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        /* BUTTONS */
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        }
+
+        .btn-secondary {
+            background: var(--light);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: #f1f5f9;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .btn-danger:hover {
+            background: #fecaca;
+        }
+
+        .btn-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .btn-success:hover {
+            background: #bbf7d0;
+        }
+
+        /* TABLE */
+        .table-responsive {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        thead {
+            background: var(--light);
+            border-bottom: 2px solid var(--border);
+        }
+
+        th {
+            padding: 14px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--text);
+            text-transform: uppercase;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tbody tr:hover {
+            background: var(--light);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .badge-info {
+            background: #e0e7ff;
+            color: #6366f1;
+        }
+
+        .amount {
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+        }
+
+        .amount-positive {
+            color: var(--success);
+        }
+
+        .amount-negative {
+            color: var(--danger);
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 35px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .modal-description {
+            font-size: 14px;
+            color: var(--text-light);
+            margin-top: 8px;
+        }
+
+        .modal-input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 20px;
+            font-family: inherit;
+        }
+
+        .modal-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-light);
+        }
+
+        .modal-error {
+            color: var(--danger);
+            font-size: 13px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .modal-error.show {
+            display: block;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn-confirm {
+            background: var(--primary);
+            color: white;
+        }
+
+        .modal-btn-confirm:hover {
+            background: var(--primary-dark);
+        }
+
+        .modal-btn-cancel {
+            background: var(--light);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .modal-btn-cancel:hover {
+            background: #f1f5f9;
+        }
+
+        /* EMPTY STATE */
+        .empty-state {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--text-light);
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .empty-text {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: var(--text);
+        }
+
+        /* FILTER */
+        .filter-bar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select {
+            padding: 8px 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .currency-input {
+            text-align: left;
+            font-family: inherit !important;
+            font-weight: 600;
+            letter-spacing: normal;
+            font-variant-numeric: proportional-nums;
+        }
+
+        /* CHARTS/SUMMARY */
+        .summary-box {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .summary-item {
+            background: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-label {
+            font-size: 12px;
+            color: var(--text-light);
+            margin-bottom: 8px;
+        }
+
+        .summary-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        /* MODERN DASHBOARD */
+        .dashboard-modern {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-welcome {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 20px;
+            margin-bottom: 22px;
+        }
+
+        .welcome-kicker,
+        .card-eyebrow {
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .dashboard-welcome h1 {
+            font-size: 28px;
+            line-height: 1.2;
+            margin-bottom: 7px;
+            color: var(--text);
+        }
+
+        .dashboard-welcome p {
+            color: var(--text-light);
+            font-size: 14px;
+            max-width: 650px;
+        }
+
+        .welcome-date {
+            background: white;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: var(--text-light);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .balance-hero {
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            min-height: 165px;
+            padding: 28px 32px;
+            margin-bottom: 22px;
+            border-radius: 20px;
+            color: white;
+            background: linear-gradient(135deg, #4f46e5 0%, #6366f1 52%, #7c3aed 100%);
+            box-shadow: 0 14px 30px rgba(79, 70, 229, .20);
+        }
+
+        .balance-hero::after {
+            content: "";
+            position: absolute;
+            width: 230px;
+            height: 230px;
+            right: 70px;
+            top: -120px;
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 50%;
+            box-shadow: 0 0 0 35px rgba(255,255,255,.05), 0 0 0 70px rgba(255,255,255,.035);
+        }
+
+        .balance-main {
+            position: relative;
+            z-index: 1;
+        }
+
+        .balance-label {
+            font-size: 13px;
+            opacity: .82;
+            margin-bottom: 7px;
+        }
+
+        .balance-value {
+            font-size: clamp(30px, 4vw, 42px);
+            font-weight: 800;
+            letter-spacing: -.8px;
+            line-height: 1.15;
+        }
+
+        .balance-meta {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            margin-top: 12px;
+            font-size: 12px;
+            opacity: .82;
+        }
+
+        .balance-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #86efac;
+            box-shadow: 0 0 0 4px rgba(134,239,172,.15);
+        }
+
+        .balance-symbol {
+            position: relative;
+            z-index: 1;
+            display: grid;
+            place-items: center;
+            width: 72px;
+            height: 72px;
+            border-radius: 18px;
+            font-size: 34px;
+            background: rgba(255,255,255,.14);
+            border: 1px solid rgba(255,255,255,.18);
+        }
+
+        .dashboard-stats {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .dashboard-stats .stat-card {
+            padding: 20px;
+            border-left: 0;
+            border-top: 3px solid var(--primary);
+            border-radius: 16px;
+        }
+
+        .dashboard-stats .stat-card.income { border-top-color: var(--success); }
+        .dashboard-stats .stat-card.expense { border-top-color: var(--danger); }
+        .dashboard-stats .stat-card.pending { border-top-color: var(--warning); }
+
+        .stat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            display: grid;
+            place-items: center;
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .income .stat-icon {
+            background: #dcfce7;
+            color: #059669;
+        }
+
+        .expense .stat-icon {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .pending .stat-icon {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .stat-trend {
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .8px;
+            color: var(--text-light);
+        }
+
+        .dashboard-stats .stat-label {
+            margin-bottom: 5px;
+        }
+
+        .dashboard-stats .stat-value {
+            font-size: 23px;
+            color: var(--text);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr);
+            gap: 18px;
+        }
+
+        .dashboard-card {
+            min-width: 0;
+            padding: 22px;
+            border-radius: 16px;
+        }
+
+        .card-heading-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .card-heading-row .card-title {
+            margin-bottom: 0;
+        }
+
+        .card-caption {
+            color: var(--text-light);
+            font-size: 11px;
+            padding-top: 3px;
+        }
+
+        .dashboard-card .summary-box {
+            grid-template-columns: 1fr;
+            margin-top: 0;
+            gap: 8px;
+        }
+
+        .dashboard-card .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 14px;
+            border: 1px solid var(--border);
+            background: #fbfcff;
+            text-align: left;
+        }
+
+        .dashboard-card .summary-label {
+            margin: 0;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .dashboard-card .summary-value {
+            font-size: 14px;
+        }
+
+        .dashboard-card table {
+            font-size: 13px;
+        }
+
+        .dashboard-card th {
+            padding: 10px 8px;
+            font-size: 10px;
+        }
+
+        .dashboard-card td {
+            padding: 12px 8px;
+        }
+
+        .dashboard-card .empty-state {
+            padding: 34px 12px;
+        }
+
+        @media (max-width: 900px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .hamburger-btn {
+                display: block;
+            }
+
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: 0;
+                height: 100vh;
+                z-index: 100;
+                width: 260px;
+                margin-left: 0;
+                border-right: 1px solid var(--border);
+                padding-top: 60px;
+            }
+
+            .sidebar.closed {
+                margin-left: -260px;
+            }
+
+            .app-wrapper {
+                flex-wrap: wrap;
+            }
+
+            .main-content {
+                width: 100%;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .topbar {
+                padding: 15px 20px;
+                flex-direction: row;
+                gap: 15px;
+                align-items: center;
+            }
+
+            .quick-stats {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard-welcome {
+                align-items: flex-start;
+                flex-direction: column;
+                margin-bottom: 16px;
+            }
+
+            .dashboard-welcome h1 {
+                font-size: 23px;
+            }
+
+            .welcome-date {
+                width: 100%;
+            }
+
+            .balance-hero {
+                min-height: 145px;
+                padding: 22px;
+                border-radius: 16px;
+            }
+
+            .balance-value {
+                font-size: 30px;
+            }
+
+            .balance-symbol {
+                width: 54px;
+                height: 54px;
+                font-size: 25px;
+                border-radius: 14px;
+            }
+
+            .dashboard-stats {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .dashboard-stats .stat-card {
+                padding: 16px;
+            }
+
+            .dashboard-grid {
+                gap: 14px;
+            }
+
+            .dashboard-card {
+                padding: 17px;
+            }
+
+            .dashboard-card .table-responsive {
+                margin: 0 -6px;
+            }
+
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                max-width: 90%;
+            }
+
+            .menu-item {
+                padding: 10px 15px;
+                font-size: 13px;
+            }
+
+            .menu-icon {
+                font-size: 18px;
+            }
+
+            .sidebar-brand {
+                padding: 0 15px 20px;
+            }
+
+            .topbar-title {
+                flex: 1;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .sidebar {
+                width: 180px;
+            }
+
+            .topbar-title {
+                font-size: 20px;
+            }
+
+            .stat-value {
+                font-size: 24px;
+            }
+
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 10px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-container active" id="loginPage">
+    <div class="login-box">
+        <div class="login-header">
+            <div class="login-icon">💰</div>
+            <h1>Manajemen Kas</h1>
+            <p>KOMIDA Cabang Ciledug</p>
+        </div>
+        
+        <div class="role-buttons">
+            <button class="role-btn role-btn-staff" onclick="quickLogin('user')">
+                👤 Masuk ke Aplikasi
+            </button>
+        </div>
+
+        <div class="login-footer">
+            <p>Di Launching 21 September 2026 Oleh Wisnu Mustika Adhi | Versi 1.0.0</p>
+        </div>
+    </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="app-wrapper" id="appWrapper">
+    <!-- SIDEBAR OVERLAY -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <div class="brand-icon">💰</div>
+            <div class="brand-name">Manajemen Kas</div>
+            <div class="brand-desc">KOMIDA Ciledug</div>
+        </div>
+
+        <div class="sidebar-user">
+            <div class="user-role" id="userRole">Staff</div>
+            <div class="user-name" id="userName">Welcome</div>
+        </div>
+
+        <nav class="sidebar-menu">
+            <div class="menu-item active" onclick="switchMenu('dashboard')">
+                <span class="menu-icon">📊</span>
+                <span>Dashboard</span>
+            </div>
+            <div class="menu-item" onclick="checkPasswordAndSwitch('transaksi')" id="menu-transaksi">
+                <span class="menu-icon">💸</span>
+                <span>Transaksi Kas</span>
+                <span class="lock-icon">🔒</span>
+            </div>
+            <div class="menu-item" onclick="switchMenu('pinjam', this)">
+                <span class="menu-icon">📝</span>
+                <span>Pinjam Kas</span>
+            </div>
+            <div class="menu-item" onclick="checkPasswordAndSwitch('approval')" id="menu-approval">
+                <span class="menu-icon">✅</span>
+                <span>Approval Manager</span>
+                <span style="margin-left:auto;font-size:12px;">▾</span>
+            </div>
+            <div class="approval-submenu" id="approvalSubmenu">
+                <div class="approval-subitem" onclick="switchMenu('verifikasiTransaksi', this)">
+                    <span>🔍</span><span>Verifikasi Transaksi Kas</span>
+                    <span class="approval-count" id="pendingTxCount">0</span>
+                </div>
+                <div class="approval-subitem" onclick="switchMenu('accPinjam', this)">
+                    <span>📝</span><span>Acc Pinjam Kas</span>
+                    <span class="approval-count" id="pendingLoanCount">0</span>
+                </div>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- TOPBAR -->
+        <div class="topbar">
+            <button class="hamburger-btn" onclick="toggleSidebar()" id="hamburgerBtn">☰</button>
+            <div class="topbar-title" id="pageTitle">Dashboard</div>
+            <div class="topbar-actions">
+                
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content">
+
+            <!-- PAGE: DASHBOARD -->
+            <div id="dashboardPage" class="dashboard-modern">
+                <section class="dashboard-welcome">
+                    <div>
+                        <div class="welcome-kicker">OVERVIEW KAS</div>
+                        <h1>Selamat datang 👋</h1>
+                        <p>Pantau kondisi kas dan aktivitas terbaru Cabang Ciledug dalam satu tampilan.</p>
+                    </div>
+                    <div class="welcome-date" id="dashboardDate">Hari ini</div>
+                </section>
+
+                <section class="balance-hero">
+                    <div class="balance-main">
+                        <div class="balance-label">Saldo Kas Tersedia</div>
+                        <div class="balance-value" id="balanceKas">Rp 0</div>
+                        <div class="balance-meta">
+                            <span class="balance-dot"></span>
+                            Posisi kas saat ini
+                        </div>
+                    </div>
+                    <div class="balance-symbol">💰</div>
+                </section>
+
+                <div class="quick-stats dashboard-stats">
+                    <div class="stat-card income">
+                        <div class="stat-top">
+                            <div class="stat-icon">↗</div>
+                            <span class="stat-trend">PEMASUKAN</span>
+                        </div>
+                        <div class="stat-label">Total Pemasukan</div>
+                        <div class="stat-value" id="totalIncome">Rp 0</div>
+                        <div class="stat-detail" id="incomeDetail">Belum ada transaksi</div>
+                    </div>
+
+                    <div class="stat-card expense">
+                        <div class="stat-top">
+                            <div class="stat-icon">↘</div>
+                            <span class="stat-trend">PENGELUARAN</span>
+                        </div>
+                        <div class="stat-label">Total Pengeluaran</div>
+                        <div class="stat-value" id="totalExpense">Rp 0</div>
+                        <div class="stat-detail" id="expenseDetail">Belum ada transaksi</div>
+                    </div>
+
+                    <div class="stat-card pending">
+                        <div class="stat-top">
+                            <div class="stat-icon">⏳</div>
+                            <span class="stat-trend">PENDING</span>
+                        </div>
+                        <div class="stat-label">Pinjaman Pending</div>
+                        <div class="stat-value" id="pendingLoans">0</div>
+                        <div class="stat-detail">Menunggu persetujuan</div>
+                    </div>
+                </div>
+
+                <div class="card dashboard-card" style="margin-bottom: 20px;">
+                    <div class="card-heading-row">
+                        <div>
+                            <div class="card-eyebrow">PENGAJUAN</div>
+                            <div class="card-title"><span class="card-title-icon">📝</span> Pengajuan Pinjaman Terbaru</div>
+                        </div>
+                        <span class="card-caption">5 terbaru</span>
+                    </div>
+                    <div id="dashboardLoans"></div>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card dashboard-card">
+                        <div class="card-heading-row">
+                            <div>
+                                <div class="card-eyebrow">ANALISIS</div>
+                                <div class="card-title"><span class="card-title-icon">📊</span> Ringkasan Kas</div>
+                            </div>
+                            <span class="card-caption">Per kategori</span>
+                        </div>
+                        <div class="summary-box" id="summaryBox"></div>
+                    </div>
+
+                    <div class="card dashboard-card">
+                        <div class="card-heading-row">
+                            <div>
+                                <div class="card-eyebrow">AKTIVITAS</div>
+                                <div class="card-title"><span class="card-title-icon">🧾</span> Transaksi Terbaru</div>
+                            </div>
+                            <span class="card-caption">5 terbaru</span>
+                        </div>
+                        <div id="recentTransactions"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: TRANSAKSI KAS -->
+            <div id="transaksiPage" style="display: none;">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="card-title-icon">➕</span>
+                            Tambah Transaksi
+                        </div>
+
+                        <!-- Urutan input transaksi: 1) Tipe, 2) Tanggal, 3) Kategori, 4) Dari Staf, 5) Jumlah, 6) Keterangan -->
+                        <div class="form-group">
+                            <label>Tipe Transaksi</label>
+                            <select id="txType">
+                                <option value="" selected>-- Pilih Tipe Transaksi --</option>
+                                <option value="income">Pemasukan</option>
+                                <option value="expense">Pengeluaran</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tanggal</label>
+                            <input type="date" id="txDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Kategori</label>
+                            <select id="txCategory">
+                                <option value="" selected>-- Pilih Kategori --</option>
+                                <option>Bayar Kas Bulanan</option>
+                                <option>Pinjam Uang Kas</option>
+                                <option>Pengembalian Pinjam Uang Kas</option>
+                                <option>Belanja</option>
+                                <option>Lain Lainnya</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Dari Staf</label>
+                            <select id="txStaff">
+                                <option value="">-- Pilih Nama Staf --</option>
+                                <option>Ardisia Panji Nurrohmad</option>
+                                <option>M Abunudin</option>
+                                <option>Wisnu Mustika Adhi</option>
+                                <option>Raudottuls Sarifah</option>
+                                <option>Nono Sutrisno</option>
+                                <option>Eka Ramadhan</option>
+                                <option>Perdi Irawan Saputra</option>
+                                <option>Indah Rahmayani</option>
+                                <option>Dikky Hermawan</option>
+                                <option>Muhammad Sandi</option>
+                                <option>Ikeu Ekayanti</option>
+                                <option>Rangga Erlando</option>
+                                <option>Ari Sundapa</option>
+                                <option>Desta Adi Triana</option>
+                                <option>Agil Leo Saputra</option>
+                                <option>Muhammad Rizky Nugraha</option>
+                                <option>All Staf</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Jumlah (Rp)</label>
+                            <input type="text" id="txAmount" class="currency-input" placeholder="Rp 0" inputmode="numeric" autocomplete="off" oninput="formatCurrency(this)">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Keterangan</label>
+                            <textarea id="txNote" placeholder="Catatan transaksi..."></textarea>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="addTransaction()">💾 Simpan</button>
+                            <button class="btn btn-secondary" onclick="resetTransactionForm()">↻ Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="card-title-icon">📈</span>
+                            Semua Transaksi
+                        </div>
+
+                        <div class="filter-bar">
+                            <select id="filterTxType" onchange="filterTransactions()">
+                                <option value="">Semua Tipe</option>
+                                <option value="income">Pemasukan</option>
+                                <option value="expense">Pengeluaran</option>
+                            </select>
+                            <select id="filterTxCategory" onchange="filterTransactions()">
+                                <option value="">Semua Kategori</option>
+                                <option>Bayar Kas Bulanan</option>
+                                <option>Pinjam Uang Kas</option>
+                                <option>Pengembalian Pinjam Uang Kas</option>
+                                <option>Belanja</option>
+                                <option>Lain Lainnya</option>
+                            </select>
+                            <select id="filterTxStaff" onchange="filterTransactions()">
+                                <option value="">Semua Staf</option>
+                                <option>Ardisia Panji Nurrohmad</option>
+                                <option>M Abunudin</option>
+                                <option>Wisnu Mustika Adhi</option>
+                                <option>Raudottuls Sarifah</option>
+                                <option>Nono Sutrisno</option>
+                                <option>Eka Ramadhan</option>
+                                <option>Perdi Irawan Saputra</option>
+                                <option>Indah Rahmayani</option>
+                                <option>Dikky Hermawan</option>
+                                <option>Muhammad Sandi</option>
+                                <option>Ikeu Ekayanti</option>
+                                <option>Rangga Erlando</option>
+                                <option>Ari Sundapa</option>
+                                <option>Desta Adi Triana</option>
+                                <option>Agil Leo Saputra</option>
+                                <option>Muhammad Rizky Nugraha</option>
+                                <option>All Staf</option>
+                                </select>
+                        </div>
+
+                        <div class="table-responsive">
+                            <div id="transactionsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: PINJAM KAS -->
+            <div id="pinjamPage" style="display: none;">
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="card-title-icon">📝</span>
+                            Ajukan Pinjaman
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tanggal Pengajuan</label>
+                            <input type="date" id="loanDate">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Nama Peminjam</label>
+                            <select id="loanName">
+                                <option value="">-- Pilih Nama Peminjam --</option>
+                                <option>Ardisia Panji Nurrohmad</option>
+                                <option>M Abunudin</option>
+                                <option>Wisnu Mustika Adhi</option>
+                                <option>Raudottuls Sarifah</option>
+                                <option>Nono Sutrisno</option>
+                                <option>Eka Ramadhan</option>
+                                <option>Perdi Irawan Saputra</option>
+                                <option>Indah Rahmayani</option>
+                                <option>Dikky Hermawan</option>
+                                <option>Muhammad Sandi</option>
+                                <option>Ikeu Ekayanti</option>
+                                <option>Rangga Erlando</option>
+                                <option>Ari Sundapa</option>
+                                <option>Desta Adi Triana</option>
+                                <option>Agil Leo Saputra</option>
+                                <option>Muhammad Rizky Nugraha</option>
+                                <option>All Staf</option>
+                                </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Jumlah Pinjam (Rp)</label>
+                            <input type="text" id="loanAmount" class="currency-input" placeholder="Rp 0" inputmode="numeric" autocomplete="off" oninput="formatCurrency(this)">
+                        </div>
+
+                        <div class="form-group">
+                            <label>Tujuan Pinjam</label>
+                            <textarea id="loanPurpose" placeholder="Jelaskan tujuan pinjaman..."></textarea>
+                        </div>
+
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="submitLoan()">📤 Ajukan</button>
+                            <button class="btn btn-secondary" onclick="resetLoanForm()">↻ Reset</button>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-title">
+                            <span class="card-title-icon">📊</span>
+                            Status Pengajuan Anda
+                        </div>
+                        <div id="myLoans"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: VERIFIKASI TRANSAKSI KAS -->
+            <div id="verifikasiTransaksiPage" style="display: none;">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="card-title-icon">🔍</span>
+                        Verifikasi Transaksi Kas
+                    </div>
+                    <p style="color:var(--text-light);margin-top:-8px;margin-bottom:18px;">
+                        Transaksi yang baru disimpan akan muncul di sini untuk diverifikasi sebelum masuk perhitungan kas.
+                    </p>
+                    <div class="table-responsive"><div id="verificationList"></div></div>
+                </div>
+            </div>
+
+            <!-- PAGE: ACC PINJAM KAS -->
+            <div id="accPinjamPage" style="display: none;">
+                <div class="card">
+                    <div class="card-title">
+                        <span class="card-title-icon">📝</span>
+                        Acc Pinjam Kas
+                    </div>
+                    <div class="filter-bar">
+                        <select id="filterLoanStatus" onchange="filterApprovals()">
+                            <option value="pending">Menunggu</option>
+                            <option value="">Semua Status</option>
+                            <option value="approved">Disetujui</option>
+                            <option value="rejected">Ditolak</option>
+                        </select>
+                    </div>
+                    <div class="table-responsive"><div id="approvalList"></div></div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="modal" id="passwordModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <div class="modal-title" id="passwordModalTitle">🔐 Verifikasi Password</div>
+            <div class="modal-description" id="passwordModalDescription">Masukkan password untuk akses menu ini</div>
+        </div>
+        <div class="modal-error" id="passwordError"></div>
+        <input type="password" id="passwordInput" class="modal-input" placeholder="Password" onkeypress="handlePasswordKey(event)">
+        <div class="modal-buttons">
+            <button class="modal-btn modal-btn-confirm" onclick="verifyPassword()">Verifikasi</button>
+            <button class="modal-btn modal-btn-cancel" onclick="closePasswordModal()">Batal</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+/* ================= REMOTE GOOGLE SHEETS API ================= */
+function runAppsScript(functionName, ...args) {
+  return new Promise((resolve, reject) => {
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(resolve)
+        .withFailureHandler(err => reject(err))
+        [functionName](...args);
+      return;
+    }
+
+    if (!APPS_SCRIPT_WEB_APP_URL || APPS_SCRIPT_WEB_APP_URL.includes('PASTE_URL')) {
+      reject(new Error(
+        'HTML belum terhubung ke Apps Script Web App. Isi APPS_SCRIPT_WEB_APP_URL atau jalankan HTML ini dari project Apps Script.'
+      ));
+      return;
+    }
+
+    fetch(APPS_SCRIPT_WEB_APP_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        functionName,
+        args,
+        spreadsheetId: SPREADSHEET_ID
+      })
+    })
+    .then(async response => {
+      const data = await response.json();
+      if (!response.ok || data.success === false) {
+        throw new Error(data.error || 'Gagal menghubungi Apps Script.');
+      }
+      resolve(data.result);
+    })
+    .catch(reject);
+  });
+}
+
+async function loadTransactionsFromSheets() {
+  const data = await runAppsScript('getAllTransactions');
+  transactions = Array.isArray(data) ? data : [];
+  return transactions;
+}
+
+async function loadLoansFromSheets(requester) {
+  const data = await runAppsScript('getLoans', requester || '');
+  loans = Array.isArray(data) ? data : [];
+  return loans;
+}
+
+async function saveTransactionToSheets(data) {
+  const result = await runAppsScript('saveTransaction', data);
+  await loadTransactionsFromSheets();
+  return result;
+}
+
+async function saveLoanToSheets(data) {
+  const result = await runAppsScript('saveLoan', data);
+  await loadLoansFromSheets(data && data.requester ? data.requester : '');
+  return result;
+}
+
+async function refreshRemoteData() {
+  try {
+    await Promise.all([
+      loadTransactionsFromSheets(),
+      loadLoansFromSheets()
+    ]);
+    return true;
+  } catch (error) {
+    console.error('Gagal memuat data Google Sheets:', error);
+    return false;
+  }
+}
+</script>
+
+
+<!-- ================= GOOGLE SHEETS CONFIGURATION =================
+     Isi SPREADSHEET_URL dengan URL Google Spreadsheet Anda.
+     Contoh:
+     https://docs.google.com/spreadsheets/d/ID_SPREADSHEET/edit
+
+     Catatan:
+     - URL ini hanya dipakai untuk mengambil ID spreadsheet.
+     - Data transaksi/pinjaman tidak lagi disimpan di localStorage.
+     - HTML ini tetap membutuhkan Apps Script Web App sebagai API.
+================================================================= -->
+<script>
+const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/18bQsVeldVel2NheXNrYp-7SerKKUQSQoModLF7jgFlE/edit?gid=1089264500#gid=1089264500';
+
+function getSpreadsheetIdFromUrl(url) {
+  const match = String(url || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  if (!match) {
+    throw new Error('URL Google Spreadsheet belum benar. Masukkan URL seperti https://docs.google.com/spreadsheets/d/ID/edit');
+  }
+  return match[1];
+}
+
+const SPREADSHEET_ID = getSpreadsheetIdFromUrl(SPREADSHEET_URL);
+
+/*
+ * URL Web App Apps Script.
+ * Jika HTML dijalankan sebagai HTML di project Apps Script yang sama,
+ * URL ini tidak perlu digunakan dan google.script.run dapat dipakai.
+ *
+ * Jika HTML dijalankan sebagai file HTML biasa/hosting lain,
+ * isi dengan URL deployment Web App Apps Script:
+ * https://script.google.com/macros/s/...../exec
+ */
+const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcfOpKi273p4nEQjRVpKRi77g43HPWiqewFGwXWsH4y9sOV9vPeOccfyCLXMQok/exec';
+</script>
+
+<script>
+    // ============ DATA & STATE ============
+    let transactions = [];
+    let loans = [];
+    let currentUser = null;
+    let userRole = 'user';
+    let pendingMenu = null;
+
+    // ============ LOGIN ============
+    function quickLogin(role) {
+        userRole = 'user'; // Always set as user/staff
+        currentUser = 'Staff Cabang Ciledug';
+        localStorage.setItem('currentUser', currentUser);
+        localStorage.setItem('userRole', 'user');
+
+        document.getElementById('loginPage').classList.remove('active');
+        document.getElementById('appWrapper').classList.add('active');
+        document.getElementById('userName').textContent = currentUser;
+        document.getElementById('userRole').textContent = '👤 Staff';
+
+        updateMenuAccess();
+        switchMenu('dashboard');
+        setDefaultDates();
+        closeSidebar(); // Tutup sidebar setelah login di mobile
+    }
+
+    function logout() {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('userRole');
+        document.getElementById('appWrapper').classList.remove('active');
+        document.getElementById('loginPage').classList.add('active');
+    }
+
+    // ============ SIDEBAR TOGGLE ============
+    function toggleSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.toggle('closed');
+        overlay.classList.toggle('active');
+    }
+
+    function closeSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.add('closed');
+        overlay.classList.remove('active');
+    }
+
+    function openSidebar() {
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+        sidebar.classList.remove('closed');
+        overlay.classList.add('active');
+    }
+
+    // ============ MENU & NAVIGATION ============
+    function updateMenuAccess() {
+        // Semua user sekarang bisa akses semua menu (tidak ada manager role)
+        const approvalMenu = document.getElementById('menu-approval');
+        approvalMenu.classList.remove('restricted');
+    }
+
+    function checkPasswordAndSwitch(menu) {
+        pendingMenu = menu;
+        const titleEl = document.getElementById('passwordModalTitle');
+        const descEl = document.getElementById('passwordModalDescription');
+        if (menu === 'transaksi') {
+            titleEl.textContent = '🔐 Password Transaksi Kas';
+            descEl.textContent = 'Menu Transaksi Kas Hanya Untuk Pemegang Uang Kas';
+        } else if (menu === 'approval') {
+            titleEl.textContent = '🔐 Password Approval Manager';
+            descEl.textContent = 'Masukkan password untuk membuka Approval Manager';
+        } else {
+            titleEl.textContent = '🔐 Verifikasi Password';
+            descEl.textContent = 'Masukkan password untuk akses menu ini';
+        }
+        document.getElementById('passwordModal').classList.add('active');
+        document.getElementById('passwordInput').focus();
+        document.getElementById('passwordError').classList.remove('show');
+    }
+
+    function verifyPassword() {
+        const password = document.getElementById('passwordInput').value;
+        const errorEl = document.getElementById('passwordError');
+
+        if (!password) {
+            errorEl.textContent = 'Password tidak boleh kosong';
+            errorEl.classList.add('show');
+            return;
+        }
+
+        const validPassword = pendingMenu === 'approval' ? 'manager123' : 'kas123';
+
+        if (password === validPassword) {
+            const target = pendingMenu;
+            closePasswordModal();
+            if (target === 'approval') {
+                document.getElementById('approvalSubmenu')?.classList.add('open');
+                switchMenu('verifikasiTransaksi');
+                updateApprovalCounts();
+            } else {
+                switchMenu(target);
+            }
+        } else {
+            errorEl.textContent = '❌ Password salah!';
+            errorEl.classList.add('show');
+            document.getElementById('passwordInput').value = '';
+        }
+    }
+
+    function handlePasswordKey(e) {
+        if (e.key === 'Enter') verifyPassword();
+    }
+
+    function closePasswordModal() {
+        document.getElementById('passwordModal').classList.remove('active');
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordError').classList.remove('show');
+    }
+
+    function switchMenu(menu, menuItem = null) {
+        // Hide all pages
+        document.querySelectorAll('[id$="Page"]').forEach(el => el.style.display = 'none');
+        
+        // Show selected page
+        document.getElementById(menu + 'Page').style.display = 'block';
+
+        // Update menu items
+        document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+        const activeItem = menuItem || (typeof event !== 'undefined' && event.target ? event.target.closest('.menu-item') : null);
+        activeItem?.classList.add('active');
+        if (menu === 'verifikasiTransaksi' || menu === 'accPinjam') {
+            document.getElementById('approvalSubmenu')?.classList.add('open');
+            document.getElementById('menu-approval')?.classList.add('active');
+        }
+
+        // Update title
+        const titles = {
+            dashboard: '📊 Dashboard',
+            transaksi: '💸 Transaksi Kas',
+            pinjam: '📝 Pinjam Uang Kas',
+            approval: '✅ Approval Manager',
+            verifikasiTransaksi: '🔍 Verifikasi Transaksi Kas',
+            accPinjam: '📝 Acc Pinjam Kas'
+        };
+        document.getElementById('pageTitle').textContent = titles[menu];
+
+        if (menu === 'dashboard') {
+            updateDashboard();
+        } else if (menu === 'transaksi') {
+            displayTransactions();
+        } else if (menu === 'pinjam') {
+            displayMyLoans();
+        } else if (menu === 'approval') {
+            displayVerificationTransactions();
+        } else if (menu === 'verifikasiTransaksi') {
+            displayVerificationTransactions();
+        } else if (menu === 'accPinjam') {
+            displayApprovals();
+        }
+
+        // Close sidebar on mobile
+        closeSidebar();
+    }
+
+    // ============ DASHBOARD ============
+    function updateDashboard() {
+        const dateEl = document.getElementById('dashboardDate');
+        if (dateEl) {
+            dateEl.textContent = new Date().toLocaleDateString('id-ID', {
+                weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+            });
+        }
+
+        const verifiedTransactions = transactions.filter(t => t.verificationStatus !== 'pending' && t.verificationStatus !== 'rejected');
+        const income = verifiedTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+        const expense = verifiedTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+        const balance = income - expense;
+
+        document.getElementById('totalIncome').textContent = `Rp ${income.toLocaleString('id-ID')}`;
+        document.getElementById('totalExpense').textContent = `Rp ${expense.toLocaleString('id-ID')}`;
+        document.getElementById('balanceKas').textContent = `Rp ${balance.toLocaleString('id-ID')}`;
+        const pendingCount = loans.filter(l => l.status === 'pending').length;
+        document.getElementById('pendingLoans').textContent = pendingCount;
+        document.getElementById('incomeDetail').textContent =
+            `${transactions.filter(t => t.type === 'income').length} transaksi`;
+        document.getElementById('expenseDetail').textContent =
+            `${transactions.filter(t => t.type === 'expense').length} transaksi`;
+
+        // Summary by category
+        const categories = {};
+        verifiedTransactions.forEach(t => {
+            categories[t.category] = (categories[t.category] || 0) + (t.type === 'income' ? t.amount : -t.amount);
+        });
+
+        let summaryHtml = '';
+        Object.entries(categories).forEach(([cat, amount]) => {
+            summaryHtml += `<div class="summary-item">
+                <div class="summary-label">${cat}</div>
+                <div class="summary-value ${amount >= 0 ? 'amount-positive' : 'amount-negative'}">
+                    ${amount >= 0 ? '+' : ''}Rp ${Math.abs(amount).toLocaleString('id-ID')}
+                </div>
+            </div>`;
+        });
+        document.getElementById('summaryBox').innerHTML = summaryHtml || '<div style="grid-column: 1/-1; text-align: center; color: var(--text-light);">Belum ada transaksi</div>';
+
+        // Recent transactions
+        let recentHtml = '';
+        if (transactions.length === 0) {
+            recentHtml = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Belum ada transaksi</div></div>';
+        } else {
+            recentHtml = '<table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Staf</th><th>Jumlah</th></tr></thead><tbody>';
+            verifiedTransactions.slice(0, 5).forEach(t => {
+                recentHtml += `<tr>
+                    <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
+                    <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.category}</span></td>
+                    <td>${t.staff || '-'}</td>
+                    <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
+                        ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
+                    </td>
+                </tr>`;
+            });
+            recentHtml += '</tbody></table>';
+        }
+        document.getElementById('recentTransactions').innerHTML = recentHtml;
+
+        // Recent loan applications on dashboard
+        const dashboardLoansEl = document.getElementById('dashboardLoans');
+        if (dashboardLoansEl) {
+            const recentLoans = loans.slice(0, 5);
+            if (recentLoans.length === 0) {
+                dashboardLoansEl.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Belum ada pengajuan pinjaman</div></div>';
+            } else {
+                let loanHtml = '<div class="table-responsive"><table><thead><tr><th>Tanggal</th><th>Peminjam</th><th>Jumlah</th><th>Tujuan</th><th>Status</th></tr></thead><tbody>';
+                recentLoans.forEach(l => {
+                    const badgeClass = l.status === 'approved' ? 'badge-success' : l.status === 'rejected' ? 'badge-danger' : 'badge-warning';
+                    const statusText = l.status === 'approved' ? 'Disetujui' : l.status === 'rejected' ? 'Ditolak' : 'Menunggu';
+                    loanHtml += `<tr>
+                        <td>${new Date(l.date).toLocaleDateString('id-ID')}</td>
+                        <td>${l.name || '-'}</td>
+                        <td class="amount amount-positive">Rp ${Number(l.amount || 0).toLocaleString('id-ID')}</td>
+                        <td>${l.purpose || '-'}</td>
+                        <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                    </tr>`;
+                });
+                loanHtml += '</tbody></table></div>';
+                dashboardLoansEl.innerHTML = loanHtml;
+            }
+        }
+    }
+
+    // ============ TRANSAKSI ============
+    function addTransaction() {
+        const type = document.getElementById('txType').value;
+        const date = document.getElementById('txDate').value;
+        const category = document.getElementById('txCategory').value;
+        const staff = document.getElementById('txStaff').value;
+        const amount = parseCurrencyValue(document.getElementById('txAmount').value);
+        const note = document.getElementById('txNote').value;
+
+        if (!type) {
+            alert('⚠️ Pilih tipe transaksi');
+            return;
+        }
+        if (!date) {
+            alert('⚠️ Pilih tanggal transaksi');
+            return;
+        }
+        if (!staff) {
+            alert('⚠️ Pilih nama staf');
+            return;
+        }
+        if (!amount || amount <= 0) {
+            alert('⚠️ Masukkan jumlah yang valid');
+            return;
+        }
+
+        transactions.unshift({
+            id: Date.now(),
+            type,
+            amount,
+            category,
+            staff,
+            date,
+            note,
+            verificationStatus: 'pending',
+            createdAt: new Date().toLocaleString('id-ID')
+        });
+        resetTransactionForm();
+        displayTransactions();
+        updateApprovalCounts();
+        alert('✅ Transaksi berhasil disimpan dan menunggu verifikasi');
+    }
+
+    function displayTransactions() {
+        let html = '<table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Dari Staf</th><th>Tipe</th><th>Jumlah</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead><tbody>';
+
+        if (transactions.length === 0) {
+            html = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Belum ada transaksi</div></div>';
+        } else {
+            transactions.forEach(t => {
+                html += `<tr>
+                    <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
+                    <td>${t.category}</td>
+                    <td>${t.staff || '-'}</td>
+                    <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type === 'income' ? 'Masuk' : 'Keluar'}</span></td>
+                    <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
+                        ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
+                    </td>
+                    <td><span class="badge ${t.verificationStatus === 'verified' || !t.verificationStatus ? 'badge-success' : t.verificationStatus === 'rejected' ? 'badge-danger' : 'badge-warning'}">${t.verificationStatus === 'rejected' ? 'Ditolak' : (t.verificationStatus === 'pending' ? 'Menunggu Verifikasi' : 'Terverifikasi')}</span></td>
+                    <td>${t.note || '-'}</td>
+                    <td>
+                        <button class="btn btn-small btn-danger" onclick="deleteTransaction(${t.id})">🗑️ Hapus</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+        }
+
+        document.getElementById('transactionsList').innerHTML = html;
+    }
+
+    function deleteTransaction(id) {
+        if (confirm('Yakin ingin menghapus?')) {
+            transactions = transactions.filter(t => t.id !== id);
+            displayTransactions();
+        }
+    }
+
+    function filterTransactions() {
+        const type = document.getElementById('filterTxType').value;
+        const cat = document.getElementById('filterTxCategory').value;
+        const staff = document.getElementById('filterTxStaff').value;
+        const filtered = transactions.filter(t => 
+            (!type || t.type === type) &&
+            (!cat || t.category === cat) &&
+            (!staff || t.staff === staff)
+        );
+
+        let html = '<table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Dari Staf</th><th>Tipe</th><th>Jumlah</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead><tbody>';
+
+        if (filtered.length === 0) {
+            html = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Tidak ada data</div></div>';
+        } else {
+            filtered.forEach(t => {
+                html += `<tr>
+                    <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
+                    <td>${t.category}</td>
+                    <td>${t.staff || '-'}</td>
+                    <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type === 'income' ? 'Masuk' : 'Keluar'}</span></td>
+                    <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
+                        ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
+                    </td>
+                    <td><span class="badge ${t.verificationStatus === 'verified' || !t.verificationStatus ? 'badge-success' : t.verificationStatus === 'rejected' ? 'badge-danger' : 'badge-warning'}">${t.verificationStatus === 'rejected' ? 'Ditolak' : (t.verificationStatus === 'pending' ? 'Menunggu Verifikasi' : 'Terverifikasi')}</span></td>
+                    <td>${t.note || '-'}</td>
+                    <td>
+                        <button class="btn btn-small btn-danger" onclick="deleteTransaction(${t.id})">🗑️ Hapus</button>
+                    </td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+        }
+
+        document.getElementById('transactionsList').innerHTML = html;
+    }
+
+    function resetTransactionForm() {
+        document.getElementById('txType').value = '';
+        document.getElementById('txDate').valueAsDate = new Date();
+        document.getElementById('txCategory').value = '';
+        document.getElementById('txStaff').value = '';
+        document.getElementById('txAmount').value = '';
+        document.getElementById('txNote').value = '';
+    }
+
+    function parseCurrencyValue(value) {
+        const digits = String(value || '').replace(/[^0-9]/g, '');
+        return digits ? Number(digits) : 0;
+    }
+
+    function formatCurrency(input) {
+        const value = parseCurrencyValue(input.value);
+        input.value = value ? `Rp ${value.toLocaleString('id-ID')}` : '';
+    }
+
+    // ============ PINJAM ============
+    function submitLoan() {
+        const name = document.getElementById('loanName').value;
+        const amount = parseCurrencyValue(document.getElementById('loanAmount').value);
+        const purpose = document.getElementById('loanPurpose').value.trim();
+        const date = document.getElementById('loanDate').value;
+
+        if (!name || !amount || !purpose || !date) {
+            alert('⚠️ Semua field harus diisi');
+            return;
+        }
+
+        loans.unshift({
+            id: Date.now(),
+            name,
+            amount,
+            purpose,
+            date,
+            status: 'pending',
+            requester: currentUser,
+            submittedAt: new Date().toLocaleString('id-ID')
+        });
+        resetLoanForm();
+        displayMyLoans();
+        updateDashboard();
+        updateApprovalCounts();
+        alert('✅ Pengajuan berhasil diajukan dan masuk ke Approval Manager');
+        // Setelah notifikasi ditutup, kembali ke Dashboard.
+        switchMenu('dashboard');
+    }
+
+    function displayMyLoans() {
+        const myLoans = loans.filter(l => l.requester === currentUser);
+
+        if (myLoans.length === 0) {
+            document.getElementById('myLoans').innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Belum ada pengajuan</div></div>';
+            return;
+        }
+
+        let html = '<table><thead><tr><th>Tanggal</th><th>Nama Peminjam</th><th>Jumlah</th><th>Tujuan</th><th>Status</th><th>Aksi</th></tr></thead><tbody>';
+
+        myLoans.forEach(l => {
+            const badgeClass = l.status === 'approved' ? 'badge-success' : l.status === 'rejected' ? 'badge-danger' : 'badge-warning';
+            const statusText = l.status === 'approved' ? 'Disetujui' : l.status === 'rejected' ? 'Ditolak' : 'Menunggu';
+
+            html += `<tr>
+                <td>${new Date(l.date).toLocaleDateString('id-ID')}</td>
+                <td>${l.name}</td>
+                <td class="amount amount-positive">Rp ${l.amount.toLocaleString('id-ID')}</td>
+                <td>${l.purpose}</td>
+                <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                <td><button class="btn btn-small btn-danger" onclick="deleteLoan(${l.id})">🗑️ Hapus</button></td>
+            </tr>`;
+        });
+
+        html += '</tbody></table>';
+        document.getElementById('myLoans').innerHTML = html;
+    }
+
+    function deleteLoan(id) {
+        if (confirm('Yakin ingin menghapus?')) {
+            loans = loans.filter(l => l.id !== id);
+            displayMyLoans();
+        }
+    }
+
+    function resetLoanForm() {
+        document.getElementById('loanName').value = '';
+        document.getElementById('loanAmount').value = '';
+        document.getElementById('loanPurpose').value = '';
+        document.getElementById('loanDate').valueAsDate = new Date();
+    }
+
+    // ============ APPROVAL MANAGER ============
+    function updateApprovalCounts() {
+        const pendingTx = transactions.filter(t => t.verificationStatus === 'pending').length;
+        const pendingLoan = loans.filter(l => l.status === 'pending').length;
+        const txEl = document.getElementById('pendingTxCount');
+        const loanEl = document.getElementById('pendingLoanCount');
+        if (txEl) txEl.textContent = pendingTx;
+        if (loanEl) loanEl.textContent = pendingLoan;
+    }
+
+    function displayVerificationTransactions() {
+        const pending = transactions.filter(t => t.verificationStatus === 'pending');
+        if (pending.length === 0) {
+            document.getElementById('verificationList').innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Tidak ada transaksi yang menunggu verifikasi</div></div>';
+            return;
+        }
+        let html = '<table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Dari Staf</th><th>Tipe</th><th>Jumlah</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>';
+        pending.forEach(t => {
+            html += `<tr>
+                <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
+                <td>${t.category}</td>
+                <td>${t.staff || '-'}</td>
+                <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type === 'income' ? 'Masuk' : 'Keluar'}</span></td>
+                <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${t.type === 'income' ? '+' : '-'}Rp ${Number(t.amount || 0).toLocaleString('id-ID')}</td>
+                <td>${t.note || '-'}</td>
+                <td>
+                    <button class="btn btn-small btn-success" onclick="verifyTransaction(${t.id})">✅ Verifikasi</button>
+                    <button class="btn btn-small btn-danger" onclick="rejectTransaction(${t.id})">❌ Tolak</button>
+                </td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('verificationList').innerHTML = html;
+    }
+
+    function verifyTransaction(id) {
+        if (confirm('Yakin ingin memverifikasi transaksi ini?')) {
+            const tx = transactions.find(t => t.id === id);
+            if (tx) {
+                tx.verificationStatus = 'verified';
+                tx.verifiedAt = new Date().toLocaleString('id-ID');
+                displayVerificationTransactions();
+                updateApprovalCounts();
+                updateDashboard();
+                alert('✅ Transaksi berhasil diverifikasi');
+            }
+        }
+    }
+
+    function rejectTransaction(id) {
+        if (confirm('Yakin ingin menolak transaksi ini?')) {
+            const tx = transactions.find(t => t.id === id);
+            if (tx) {
+                tx.verificationStatus = 'rejected';
+                tx.rejectedAt = new Date().toLocaleString('id-ID');
+                displayVerificationTransactions();
+                updateApprovalCounts();
+                updateDashboard();
+                alert('❌ Transaksi ditolak');
+            }
+        }
+    }
+
+    function displayApprovals() {
+        filterApprovals();
+    }
+
+    function approveLoan(id) {
+        if (confirm('Yakin ingin menyetujui?')) {
+            const loan = loans.find(l => l.id === id);
+            if (loan) {
+                loan.status = 'approved';
+                loan.approvedAt = new Date().toLocaleString('id-ID');
+                displayApprovals();
+                updateApprovalCounts();
+                updateDashboard();
+                alert('✅ Pengajuan disetujui');
+            }
+        }
+    }
+
+    function rejectLoan(id) {
+        if (confirm('Yakin ingin menolak?')) {
+            const loan = loans.find(l => l.id === id);
+            if (loan) {
+                loan.status = 'rejected';
+                loan.rejectedAt = new Date().toLocaleString('id-ID');
+                displayApprovals();
+                updateApprovalCounts();
+                updateDashboard();
+                alert('❌ Pengajuan ditolak');
+            }
+        }
+    }
+
+    function filterApprovals() {
+        const status = document.getElementById('filterLoanStatus').value;
+        const filtered = status ? loans.filter(l => l.status === status) : loans;
+        if (filtered.length === 0) {
+            document.getElementById('approvalList').innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Tidak ada data</div></div>';
+            return;
+        }
+        let html = '<table><thead><tr><th>Peminjam</th><th>Jumlah</th><th>Tujuan</th><th>Tanggal</th><th>Status / Aksi</th></tr></thead><tbody>';
+        filtered.forEach(l => {
+            html += `<tr>
+                <td>${l.name}</td>
+                <td class="amount amount-positive">Rp ${Number(l.amount || 0).toLocaleString('id-ID')}</td>
+                <td>${l.purpose}</td>
+                <td>${new Date(l.date).toLocaleDateString('id-ID')}</td>
+                <td>${l.status === 'pending' ? `
+                    <button class="btn btn-small btn-success" onclick="approveLoan(${l.id})">✅ Setujui</button>
+                    <button class="btn btn-small btn-danger" onclick="rejectLoan(${l.id})">❌ Tolak</button>
+                ` : `<span class="badge ${l.status === 'approved' ? 'badge-success' : 'badge-danger'}">${l.status === 'approved' ? 'Disetujui' : 'Ditolak'}</span>`}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('approvalList').innerHTML = html;
+    }
+
+    // ============ UTILITIES ============
+    function setDefaultDates() {
+        document.getElementById('txDate').valueAsDate = new Date();
+        document.getElementById('loanDate').valueAsDate = new Date();
+    }
+
+    // ============ INIT ============
+    window.addEventListener('load', () => {
+        const user = localStorage.getItem('currentUser');
+
+        if (user) {
+            currentUser = user;
+            userRole = 'user';
+            document.getElementById('loginPage').classList.remove('active');
+            document.getElementById('appWrapper').classList.add('active');
+            document.getElementById('userName').textContent = user;
+            document.getElementById('userRole').textContent = '👤 Staff';
+            updateMenuAccess();
+            updateDashboard();
+            updateApprovalCounts();
+            closeSidebar();
+        }
+
+        setDefaultDates();
+
+        // Handle menu item clicks untuk active state
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+    });
+
+    // Close modal when clicking outside
+    document.getElementById('passwordModal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'passwordModal') closePasswordModal();
+    });
+</script>
+
+</body>
+</html>
