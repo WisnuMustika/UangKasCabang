@@ -1688,117 +1688,104 @@
 
 
 <script>
-/* ================= REMOTE GOOGLE SHEETS API ================= */
-function runAppsScript(functionName, ...args) {
-  return new Promise((resolve, reject) => {
-    if (typeof google !== 'undefined' && google.script && google.script.run) {
-      google.script.run
-        .withSuccessHandler(resolve)
-        .withFailureHandler(err => reject(err))
-        [functionName](...args);
-      return;
+/* ================= GOOGLE APPS SCRIPT WEB APP API ================= */
+const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcfOpKi273p4nEQjRVpKRi77g43HPWiqewFGwXWsH4y9sOV9vPeOccfyCLXMQok/exec';
+
+async function runAppsScript(functionName, ...args) {
+    if (!APPS_SCRIPT_WEB_APP_URL) {
+        throw new Error('URL Apps Script Web App belum diisi.');
     }
 
-    if (!APPS_SCRIPT_WEB_APP_URL || APPS_SCRIPT_WEB_APP_URL.includes('PASTE_URL')) {
-      reject(new Error(
-        'HTML belum terhubung ke Apps Script Web App. Isi APPS_SCRIPT_WEB_APP_URL atau jalankan HTML ini dari project Apps Script.'
-      ));
-      return;
+    const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
+        method: 'POST',
+        mode: 'cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ functionName, args })
+    });
+
+    const raw = await response.text();
+    let result;
+
+    try {
+        result = JSON.parse(raw);
+    } catch (e) {
+        throw new Error('Respons Apps Script bukan JSON. Pastikan Web App sudah di-deploy sebagai versi terbaru dan aksesnya "Anyone".');
     }
 
-    fetch(APPS_SCRIPT_WEB_APP_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        functionName,
-        args,
-        spreadsheetId: SPREADSHEET_ID
-      })
-    })
-    .then(async response => {
-      const data = await response.json();
-      if (!response.ok || data.success === false) {
-        throw new Error(data.error || 'Gagal menghubungi Apps Script.');
-      }
-      resolve(data.result);
-    })
-    .catch(reject);
-  });
+    if (!response.ok || result.success === false) {
+        throw new Error(result.error || 'Apps Script mengembalikan error.');
+    }
+
+    return result.result;
 }
 
 async function loadTransactionsFromSheets() {
-  const data = await runAppsScript('getAllTransactions');
-  transactions = Array.isArray(data) ? data : [];
-  return transactions;
+    const data = await runAppsScript('getAllTransactions');
+
+    transactions = (Array.isArray(data) ? data : []).map(t => {
+        const rawType = String(t.type || t.tipe || '').toLowerCase();
+        const status = String(t.statusVerifikasi || t.verificationStatus || t.status || 'pending').toLowerCase();
+        const note = t.keterangan || t.Keterangan || t.description || t.note || '';
+
+        return {
+            ...t,
+            type: rawType === 'pemasukan' ? 'income' :
+                  rawType === 'pengeluaran' ? 'expense' : rawType,
+            status,
+            verificationStatus: status,
+            note,
+            keterangan: note,
+            description: note,
+            amount: Number(t.amount ?? t.jumlah ?? 0),
+            jumlah: Number(t.jumlah ?? t.amount ?? 0),
+            category: t.category || t.kategori || '',
+            staff: t.staff || t.dariStaf || '',
+            date: t.date || t.tanggal || ''
+        };
+    });
+
+    return transactions;
 }
 
-async function loadLoansFromSheets(requester) {
-  const data = await runAppsScript('getLoans', requester || '');
-  loans = Array.isArray(data) ? data : [];
-  return loans;
+async function loadLoansFromSheets() {
+    const data = await runAppsScript('getLoans', '');
+
+    loans = (Array.isArray(data) ? data : []).map(l => ({
+        ...l,
+        status: String(l.status || 'pending').toLowerCase(),
+        name: l.name || l.namaPeminjam || '',
+        amount: Number(l.amount ?? l.jumlah ?? 0),
+        purpose: l.purpose || l.tujuanPinjam || '',
+        date: l.date || l.tanggal || '',
+        requester: l.requester || ''
+    }));
+
+    return loans;
 }
 
-async function saveTransactionToSheets(data) {
-  const result = await runAppsScript('saveTransaction', data);
-  await loadTransactionsFromSheets();
-  return result;
-}
+async function refreshRemoteData(showError = true) {
+    try {
+        await Promise.all([
+            loadTransactionsFromSheets(),
+            loadLoansFromSheets()
+        ]);
 
-async function saveLoanToSheets(data) {
-  const result = await runAppsScript('saveLoan', data);
-  await loadLoansFromSheets(data && data.requester ? data.requester : '');
-  return result;
-}
-
-async function refreshRemoteData() {
-  try {
-    await Promise.all([
-      loadTransactionsFromSheets(),
-      loadLoansFromSheets()
-    ]);
-    return true;
-  } catch (error) {
-    console.error('Gagal memuat data Google Sheets:', error);
-    return false;
-  }
+        displayTransactions();
+        displayMyLoans();
+        updateApprovalCounts();
+        updateDashboard();
+        return true;
+    } catch (error) {
+        console.error(error);
+        if (showError) {
+            alert('❌ Gagal mengambil data dari Google Spreadsheet.\n\n' + (error.message || error));
+        }
+        return false;
+    }
 }
 </script>
 
 
-<!-- ================= GOOGLE SHEETS CONFIGURATION =================
-     Isi SPREADSHEET_URL dengan URL Google Spreadsheet Anda.
-     Contoh:
-     https://docs.google.com/spreadsheets/d/ID_SPREADSHEET/edit
-
-     Catatan:
-     - URL ini hanya dipakai untuk mengambil ID spreadsheet.
-     - Data transaksi/pinjaman tidak lagi disimpan di localStorage.
-     - HTML ini tetap membutuhkan Apps Script Web App sebagai API.
-================================================================= -->
-<script>
-const SPREADSHEET_URL = 'https://docs.google.com/spreadsheets/d/18bQsVeldVel2NheXNrYp-7SerKKUQSQoModLF7jgFlE/edit?gid=1089264500#gid=1089264500';
-
-function getSpreadsheetIdFromUrl(url) {
-  const match = String(url || '').match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
-  if (!match) {
-    throw new Error('URL Google Spreadsheet belum benar. Masukkan URL seperti https://docs.google.com/spreadsheets/d/ID/edit');
-  }
-  return match[1];
-}
-
-const SPREADSHEET_ID = getSpreadsheetIdFromUrl(SPREADSHEET_URL);
-
-/*
- * URL Web App Apps Script.
- * Jika HTML dijalankan sebagai HTML di project Apps Script yang sama,
- * URL ini tidak perlu digunakan dan google.script.run dapat dipakai.
- *
- * Jika HTML dijalankan sebagai file HTML biasa/hosting lain,
- * isi dengan URL deployment Web App Apps Script:
- * https://script.google.com/macros/s/...../exec
- */
-const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcfOpKi273p4nEQjRVpKRi77g43HPWiqewFGwXWsH4y9sOV9vPeOccfyCLXMQok/exec';
-</script>
 
 <script>
     // ============ DATA & STATE ============
@@ -1824,6 +1811,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         switchMenu('dashboard');
         setDefaultDates();
         closeSidebar(); // Tutup sidebar setelah login di mobile
+        refreshRemoteData();
     }
 
     function logout() {
@@ -1967,7 +1955,16 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
     }
 
     // ============ DASHBOARD ============
-    function updateDashboard() {
+    function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function updateDashboard() {
         const dateEl = document.getElementById('dashboardDate');
         if (dateEl) {
             dateEl.textContent = new Date().toLocaleDateString('id-ID', {
@@ -1975,7 +1972,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             });
         }
 
-        const verifiedTransactions = transactions.filter(t => t.verificationStatus !== 'pending' && t.verificationStatus !== 'rejected');
+        const verifiedTransactions = transactions.filter(t => t.status === 'approved');
         const income = verifiedTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
         const expense = verifiedTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
         const balance = income - expense;
@@ -1993,7 +1990,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         // Summary by category
         const categories = {};
         verifiedTransactions.forEach(t => {
-            categories[t.category] = (categories[t.category] || 0) + (t.type === 'income' ? t.amount : -t.amount);
+            categories[t.category || t.kategori] = (categories[t.category || t.kategori] || 0) + (t.type === 'income' ? t.amount : -t.amount);
         });
 
         let summaryHtml = '';
@@ -2012,15 +2009,17 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         if (transactions.length === 0) {
             recentHtml = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Belum ada transaksi</div></div>';
         } else {
-            recentHtml = '<table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Staf</th><th>Jumlah</th></tr></thead><tbody>';
+            recentHtml = '<div class="table-responsive"><table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Staf</th><th>Jumlah</th><th>Keterangan</th></tr></thead><tbody>';
             verifiedTransactions.slice(0, 5).forEach(t => {
+                const keterangan = t.description || t.keterangan || '-';
                 recentHtml += `<tr>
                     <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
-                    <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.category}</span></td>
-                    <td>${t.staff || '-'}</td>
+                    <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.category || t.kategori}</span></td>
+                    <td>${(t.staff || t.dariStaf || '-')}</td>
                     <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
-                        ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
+                        ${t.type === 'income' ? '+' : '-'}Rp ${Number(t.amount || t.jumlah || 0).toLocaleString('id-ID')}
                     </td>
+                    <td>${escapeHtml(keterangan)}</td>
                 </tr>`;
             });
             recentHtml += '</tbody></table>';
@@ -2053,7 +2052,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
     }
 
     // ============ TRANSAKSI ============
-    function addTransaction() {
+    async function addTransaction() {
         const type = document.getElementById('txType').value;
         const date = document.getElementById('txDate').value;
         const category = document.getElementById('txCategory').value;
@@ -2069,6 +2068,10 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             alert('⚠️ Pilih tanggal transaksi');
             return;
         }
+        if (!category) {
+            alert('⚠️ Pilih kategori transaksi');
+            return;
+        }
         if (!staff) {
             alert('⚠️ Pilih nama staf');
             return;
@@ -2078,21 +2081,28 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             return;
         }
 
-        transactions.unshift({
-            id: Date.now(),
-            type,
-            amount,
-            category,
-            staff,
-            date,
-            note,
-            verificationStatus: 'pending',
-            createdAt: new Date().toLocaleString('id-ID')
-        });
-        resetTransactionForm();
-        displayTransactions();
-        updateApprovalCounts();
-        alert('✅ Transaksi berhasil disimpan dan menunggu verifikasi');
+        const btn = document.querySelector('button[onclick="addTransaction()"]');
+        if (btn) btn.disabled = true;
+
+        try {
+            await runAppsScript('saveTransaction', {
+                tanggal: date,
+                tipe: type === 'income' ? 'Pemasukan' : (type === 'expense' ? 'Pengeluaran' : type),
+                kategori: category,
+                dariStaf: staff,
+                jumlah: amount,
+                keterangan: note,
+                requester: currentUser || 'Staff Cabang Ciledug'
+            });
+
+            resetTransactionForm();
+            await refreshRemoteData();
+            alert('✅ Transaksi berhasil disimpan ke Google Spreadsheet dan menunggu verifikasi');
+        } catch (error) {
+            alert('❌ Transaksi gagal disimpan.\n\n' + (error.message || error));
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     }
 
     function displayTransactions() {
@@ -2104,16 +2114,16 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             transactions.forEach(t => {
                 html += `<tr>
                     <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
-                    <td>${t.category}</td>
-                    <td>${t.staff || '-'}</td>
+                    <td>${t.category || t.kategori}</td>
+                    <td>${(t.staff || t.dariStaf || '-')}</td>
                     <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type === 'income' ? 'Masuk' : 'Keluar'}</span></td>
                     <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
                         ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
                     </td>
-                    <td><span class="badge ${t.verificationStatus === 'verified' || !t.verificationStatus ? 'badge-success' : t.verificationStatus === 'rejected' ? 'badge-danger' : 'badge-warning'}">${t.verificationStatus === 'rejected' ? 'Ditolak' : (t.verificationStatus === 'pending' ? 'Menunggu Verifikasi' : 'Terverifikasi')}</span></td>
-                    <td>${t.note || '-'}</td>
+                    <td><span class="badge ${t.status === 'approved' ? 'badge-success' : t.status === 'rejected' ? 'badge-danger' : 'badge-warning'}">${t.status === 'approved' ? 'Terverifikasi' : t.status === 'rejected' ? 'Ditolak' : 'Menunggu Verifikasi'}</span></td>
+                    <td>${escapeHtml(t.note || t.keterangan || t.description || '-')}</td>
                     <td>
-                        <button class="btn btn-small btn-danger" onclick="deleteTransaction(${t.id})">🗑️ Hapus</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteTransaction(${JSON.stringify(String(t.id))})">🗑️ Hapus</button>
                     </td>
                 </tr>`;
             });
@@ -2123,11 +2133,8 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         document.getElementById('transactionsList').innerHTML = html;
     }
 
-    function deleteTransaction(id) {
-        if (confirm('Yakin ingin menghapus?')) {
-            transactions = transactions.filter(t => t.id !== id);
-            displayTransactions();
-        }
+    async function deleteTransaction(id) {
+        alert('Penghapusan transaksi dari Spreadsheet belum diaktifkan. Gunakan verifikasi/approval untuk mengubah status transaksi.');
     }
 
     function filterTransactions() {
@@ -2136,8 +2143,8 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         const staff = document.getElementById('filterTxStaff').value;
         const filtered = transactions.filter(t => 
             (!type || t.type === type) &&
-            (!cat || t.category === cat) &&
-            (!staff || t.staff === staff)
+            (!cat || (t.category || t.kategori) === cat) &&
+            (!staff || (t.staff || t.dariStaf) === staff)
         );
 
         let html = '<table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Dari Staf</th><th>Tipe</th><th>Jumlah</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead><tbody>';
@@ -2148,16 +2155,16 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             filtered.forEach(t => {
                 html += `<tr>
                     <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
-                    <td>${t.category}</td>
-                    <td>${t.staff || '-'}</td>
+                    <td>${t.category || t.kategori}</td>
+                    <td>${(t.staff || t.dariStaf || '-')}</td>
                     <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type === 'income' ? 'Masuk' : 'Keluar'}</span></td>
                     <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">
                         ${t.type === 'income' ? '+' : '-'}Rp ${t.amount.toLocaleString('id-ID')}
                     </td>
-                    <td><span class="badge ${t.verificationStatus === 'verified' || !t.verificationStatus ? 'badge-success' : t.verificationStatus === 'rejected' ? 'badge-danger' : 'badge-warning'}">${t.verificationStatus === 'rejected' ? 'Ditolak' : (t.verificationStatus === 'pending' ? 'Menunggu Verifikasi' : 'Terverifikasi')}</span></td>
-                    <td>${t.note || '-'}</td>
+                    <td><span class="badge ${t.status === 'approved' ? 'badge-success' : t.status === 'rejected' ? 'badge-danger' : 'badge-warning'}">${t.status === 'approved' ? 'Terverifikasi' : t.status === 'rejected' ? 'Ditolak' : 'Menunggu Verifikasi'}</span></td>
+                    <td>${escapeHtml(t.note || t.keterangan || t.description || '-')}</td>
                     <td>
-                        <button class="btn btn-small btn-danger" onclick="deleteTransaction(${t.id})">🗑️ Hapus</button>
+                        <button class="btn btn-small btn-danger" onclick="deleteTransaction(${JSON.stringify(String(t.id))})">🗑️ Hapus</button>
                     </td>
                 </tr>`;
             });
@@ -2187,7 +2194,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
     }
 
     // ============ PINJAM ============
-    function submitLoan() {
+    async function submitLoan() {
         const name = document.getElementById('loanName').value;
         const amount = parseCurrencyValue(document.getElementById('loanAmount').value);
         const purpose = document.getElementById('loanPurpose').value.trim();
@@ -2198,23 +2205,27 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             return;
         }
 
-        loans.unshift({
-            id: Date.now(),
-            name,
-            amount,
-            purpose,
-            date,
-            status: 'pending',
-            requester: currentUser,
-            submittedAt: new Date().toLocaleString('id-ID')
-        });
-        resetLoanForm();
-        displayMyLoans();
-        updateDashboard();
-        updateApprovalCounts();
-        alert('✅ Pengajuan berhasil diajukan dan masuk ke Approval Manager');
-        // Setelah notifikasi ditutup, kembali ke Dashboard.
-        switchMenu('dashboard');
+        const btn = document.querySelector('button[onclick="submitLoan()"]');
+        if (btn) btn.disabled = true;
+
+        try {
+            await runAppsScript('saveLoan', {
+                tanggal: date,
+                namaPeminjam: name,
+                jumlah: amount,
+                tujuanPinjam: purpose,
+                requester: currentUser || 'Staff Cabang Ciledug'
+            });
+
+            resetLoanForm();
+            await refreshRemoteData();
+            alert('✅ Pengajuan berhasil disimpan ke Google Spreadsheet dan masuk ke Approval Manager');
+            switchMenu('dashboard');
+        } catch (error) {
+            alert('❌ Pengajuan gagal disimpan.\n\n' + (error.message || error));
+        } finally {
+            if (btn) btn.disabled = false;
+        }
     }
 
     function displayMyLoans() {
@@ -2261,7 +2272,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
 
     // ============ APPROVAL MANAGER ============
     function updateApprovalCounts() {
-        const pendingTx = transactions.filter(t => t.verificationStatus === 'pending').length;
+        const pendingTx = transactions.filter(t => t.status === 'pending').length;
         const pendingLoan = loans.filter(l => l.status === 'pending').length;
         const txEl = document.getElementById('pendingTxCount');
         const loanEl = document.getElementById('pendingLoanCount');
@@ -2270,7 +2281,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
     }
 
     function displayVerificationTransactions() {
-        const pending = transactions.filter(t => t.verificationStatus === 'pending');
+        const pending = transactions.filter(t => t.status === 'pending');
         if (pending.length === 0) {
             document.getElementById('verificationList').innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Tidak ada transaksi yang menunggu verifikasi</div></div>';
             return;
@@ -2279,14 +2290,14 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         pending.forEach(t => {
             html += `<tr>
                 <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
-                <td>${t.category}</td>
-                <td>${t.staff || '-'}</td>
+                <td>${t.category || t.kategori}</td>
+                <td>${(t.staff || t.dariStaf || '-')}</td>
                 <td><span class="badge ${t.type === 'income' ? 'badge-success' : 'badge-danger'}">${t.type === 'income' ? 'Masuk' : 'Keluar'}</span></td>
                 <td class="amount ${t.type === 'income' ? 'amount-positive' : 'amount-negative'}">${t.type === 'income' ? '+' : '-'}Rp ${Number(t.amount || 0).toLocaleString('id-ID')}</td>
-                <td>${t.note || '-'}</td>
+                <td>${escapeHtml(t.note || t.keterangan || t.description || '-')}</td>
                 <td>
-                    <button class="btn btn-small btn-success" onclick="verifyTransaction(${t.id})">✅ Verifikasi</button>
-                    <button class="btn btn-small btn-danger" onclick="rejectTransaction(${t.id})">❌ Tolak</button>
+                    <button class="btn btn-small btn-success" onclick="verifyTransaction(${JSON.stringify(String(t.id))})">✅ Verifikasi</button>
+                    <button class="btn btn-small btn-danger" onclick="rejectTransaction(${JSON.stringify(String(t.id))})">❌ Tolak</button>
                 </td>
             </tr>`;
         });
@@ -2294,31 +2305,27 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         document.getElementById('verificationList').innerHTML = html;
     }
 
-    function verifyTransaction(id) {
-        if (confirm('Yakin ingin memverifikasi transaksi ini?')) {
-            const tx = transactions.find(t => t.id === id);
-            if (tx) {
-                tx.verificationStatus = 'verified';
-                tx.verifiedAt = new Date().toLocaleString('id-ID');
-                displayVerificationTransactions();
-                updateApprovalCounts();
-                updateDashboard();
-                alert('✅ Transaksi berhasil diverifikasi');
-            }
+    async function verifyTransaction(id) {
+        if (!confirm('Yakin ingin memverifikasi transaksi ini?')) return;
+
+        try {
+            await runAppsScript('verifyTransaction', id, 'approved', currentUser || 'Manager');
+            await refreshRemoteData();
+            alert('✅ Transaksi berhasil diverifikasi dan tersimpan di Google Spreadsheet');
+        } catch (error) {
+            alert('❌ Verifikasi gagal.\n\n' + (error.message || error));
         }
     }
 
-    function rejectTransaction(id) {
-        if (confirm('Yakin ingin menolak transaksi ini?')) {
-            const tx = transactions.find(t => t.id === id);
-            if (tx) {
-                tx.verificationStatus = 'rejected';
-                tx.rejectedAt = new Date().toLocaleString('id-ID');
-                displayVerificationTransactions();
-                updateApprovalCounts();
-                updateDashboard();
-                alert('❌ Transaksi ditolak');
-            }
+    async function rejectTransaction(id) {
+        if (!confirm('Yakin ingin menolak transaksi ini?')) return;
+
+        try {
+            await runAppsScript('verifyTransaction', id, 'rejected', currentUser || 'Manager');
+            await refreshRemoteData();
+            alert('❌ Transaksi ditolak');
+        } catch (error) {
+            alert('❌ Gagal menolak transaksi.\n\n' + (error.message || error));
         }
     }
 
@@ -2326,31 +2333,27 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
         filterApprovals();
     }
 
-    function approveLoan(id) {
-        if (confirm('Yakin ingin menyetujui?')) {
-            const loan = loans.find(l => l.id === id);
-            if (loan) {
-                loan.status = 'approved';
-                loan.approvedAt = new Date().toLocaleString('id-ID');
-                displayApprovals();
-                updateApprovalCounts();
-                updateDashboard();
-                alert('✅ Pengajuan disetujui');
-            }
+    async function approveLoan(id) {
+        if (!confirm('Yakin ingin menyetujui?')) return;
+
+        try {
+            await runAppsScript('approveLoan', id, 'approved', currentUser || 'Manager');
+            await refreshRemoteData();
+            alert('✅ Pengajuan disetujui dan status tersimpan di Google Spreadsheet');
+        } catch (error) {
+            alert('❌ Approval gagal.\n\n' + (error.message || error));
         }
     }
 
-    function rejectLoan(id) {
-        if (confirm('Yakin ingin menolak?')) {
-            const loan = loans.find(l => l.id === id);
-            if (loan) {
-                loan.status = 'rejected';
-                loan.rejectedAt = new Date().toLocaleString('id-ID');
-                displayApprovals();
-                updateApprovalCounts();
-                updateDashboard();
-                alert('❌ Pengajuan ditolak');
-            }
+    async function rejectLoan(id) {
+        if (!confirm('Yakin ingin menolak?')) return;
+
+        try {
+            await runAppsScript('approveLoan', id, 'rejected', currentUser || 'Manager');
+            await refreshRemoteData();
+            alert('❌ Pengajuan ditolak');
+        } catch (error) {
+            alert('❌ Gagal menolak pengajuan.\n\n' + (error.message || error));
         }
     }
 
@@ -2369,8 +2372,8 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
                 <td>${l.purpose}</td>
                 <td>${new Date(l.date).toLocaleDateString('id-ID')}</td>
                 <td>${l.status === 'pending' ? `
-                    <button class="btn btn-small btn-success" onclick="approveLoan(${l.id})">✅ Setujui</button>
-                    <button class="btn btn-small btn-danger" onclick="rejectLoan(${l.id})">❌ Tolak</button>
+                    <button class="btn btn-small btn-success" onclick="approveLoan(${JSON.stringify(String(l.id))})">✅ Setujui</button>
+                    <button class="btn btn-small btn-danger" onclick="rejectLoan(${JSON.stringify(String(l.id))})">❌ Tolak</button>
                 ` : `<span class="badge ${l.status === 'approved' ? 'badge-success' : 'badge-danger'}">${l.status === 'approved' ? 'Disetujui' : 'Ditolak'}</span>`}</td>
             </tr>`;
         });
@@ -2399,6 +2402,7 @@ const APPS_SCRIPT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbzX2kcf
             updateDashboard();
             updateApprovalCounts();
             closeSidebar();
+            refreshRemoteData();
         }
 
         setDefaultDates();
