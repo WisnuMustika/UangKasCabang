@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Kas - KOMIDA Ciledug</title>
+    <title>Manajemen Uang Kas - Cabang Ciledug</title>
     <style>
         * {
             margin: 0;
@@ -145,6 +145,8 @@
         .sidebar {
             width: 260px;
             background: white;
+            display: flex;
+            flex-direction: column;
             border-right: 1px solid var(--border);
             padding: 30px 0;
             overflow-y: auto;
@@ -305,10 +307,10 @@
         }
 
         .sidebar-footer {
-            position: absolute;
-            bottom: 0;
+            position: static;
             width: 100%;
-            padding: 20px;
+            margin-top: 5px;
+            padding: 10px 20px 20px;
             border-top: 1px solid var(--border);
             display: flex;
             flex-direction: column;
@@ -1234,6 +1236,10 @@
                 padding: 0 15px 20px;
             }
 
+            .sidebar-footer {
+                padding: 10px 15px 20px;
+            }
+
             .topbar-title {
                 flex: 1;
             }
@@ -1269,8 +1275,8 @@
     <div class="login-box">
         <div class="login-header">
             <div class="login-icon">💰</div>
-            <h1>Manajemen Kas</h1>
-            <p>KOMIDA Cabang Ciledug</p>
+            <h1>Database Keuangan Saldo Kas</h1>
+            <p>Cabang Ciledug</p>
         </div>
         
         <div class="role-buttons">
@@ -1294,8 +1300,8 @@
     <aside class="sidebar">
         <div class="sidebar-brand">
             <div class="brand-icon">💰</div>
-            <div class="brand-name">Manajemen Kas</div>
-            <div class="brand-desc">KOMIDA Ciledug</div>
+            <div class="brand-name">Manajemen Uang Kas</div>
+            <div class="brand-desc">Cabang Ciledug</div>
         </div>
 
         <div class="sidebar-user">
@@ -1774,6 +1780,16 @@ async function refreshRemoteData(showError = true) {
         displayMyLoans();
         updateApprovalCounts();
         updateDashboard();
+
+        // Sinkronkan tampilan Approval Manager juga agar item yang sudah
+        // diproses langsung hilang tanpa perlu pindah menu atau refresh.
+        if (document.getElementById('verificationList')) {
+            displayVerificationTransactions();
+        }
+        if (document.getElementById('approvalList')) {
+            filterApprovals();
+        }
+
         return true;
     } catch (error) {
         console.error(error);
@@ -1815,11 +1831,17 @@ async function refreshRemoteData(showError = true) {
     }
 
     function logout() {
+        if (!confirm('Yakin ingin keluar dari aplikasi?')) return;
+
         currentUser = null;
+        userRole = 'user';
         localStorage.removeItem('currentUser');
         localStorage.removeItem('userRole');
+
         document.getElementById('appWrapper').classList.remove('active');
         document.getElementById('loginPage').classList.add('active');
+
+        alert('✅ Anda berhasil logout.');
     }
 
     // ============ SIDEBAR TOGGLE ============
@@ -2389,21 +2411,14 @@ function updateDashboard() {
 
     // ============ INIT ============
     window.addEventListener('load', () => {
-        const user = localStorage.getItem('currentUser');
+        // Setiap browser refresh wajib kembali ke halaman Login.
+        currentUser = null;
+        userRole = 'user';
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('userRole');
 
-        if (user) {
-            currentUser = user;
-            userRole = 'user';
-            document.getElementById('loginPage').classList.remove('active');
-            document.getElementById('appWrapper').classList.add('active');
-            document.getElementById('userName').textContent = user;
-            document.getElementById('userRole').textContent = '👤 Staff';
-            updateMenuAccess();
-            updateDashboard();
-            updateApprovalCounts();
-            closeSidebar();
-            refreshRemoteData();
-        }
+        document.getElementById('appWrapper').classList.remove('active');
+        document.getElementById('loginPage').classList.add('active');
 
         setDefaultDates();
 
