@@ -1344,7 +1344,7 @@
         </div>
 
         <div class="login-footer">
-            <p>Di Launching 21 September 2026 Oleh Wisnu Mustika Adhi | Versi 1.0.0</p>
+            <p>Di Launching 21 September 2026 Oleh Wisnu Mustika Adhi | Versi 1.1.0</p>
         </div>
     </div>
 </div>
@@ -2095,7 +2095,7 @@ function updateDashboard() {
             recentHtml = '<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text">Belum ada transaksi</div></div>';
         } else {
             recentHtml = '<div class="table-responsive"><table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Staf</th><th>Jumlah</th><th>Keterangan</th></tr></thead><tbody>';
-            verifiedTransactions.slice(0, 5).forEach(t => {
+            verifiedTransactions.slice(-5).reverse().forEach(t => {
                 const keterangan = t.description || t.keterangan || '-';
                 recentHtml += `<tr>
                     <td>${new Date(t.date).toLocaleDateString('id-ID')}</td>
