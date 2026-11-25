@@ -1120,6 +1120,58 @@
             padding: 34px 12px;
         }
 
+        /* TABEL PEMINJAM UANG KAS */
+        .kas-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        .kas-chip {
+            flex: 1 1 150px;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: #fbfcff;
+        }
+
+        .kas-chip-label {
+            font-size: 11px;
+            color: var(--text-light);
+            font-weight: 600;
+        }
+
+        .kas-chip-value {
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .kas-chip-danger .kas-chip-value { color: var(--danger); }
+        .kas-chip-success .kas-chip-value { color: var(--success); }
+
+        .kas-borrower-scroll {
+            max-height: 440px;
+            overflow: auto;
+        }
+
+        .kas-borrower-scroll thead th {
+            position: sticky;
+            top: 0;
+            background: var(--light);
+            z-index: 1;
+        }
+
+        .kas-days-late { color: var(--danger); font-weight: 700; }
+        .kas-days-paid { color: var(--success); font-weight: 700; }
+        .kas-days-sub { display: block; color: var(--text-light); font-size: 11px; font-weight: 500; }
+
+        .kas-borrower-note {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
         @media (max-width: 900px) {
             .dashboard-grid {
                 grid-template-columns: 1fr;
@@ -1344,7 +1396,7 @@
         </div>
 
         <div class="login-footer">
-            <p>Di Launching 21 September 2026 Oleh Wisnu Mustika Adhi | Versi 1.1.0</p>
+            <p>Di Launching 21 September 2026 Oleh Wisnu Mustika Adhi | Versi 1.2.0 | Update 25 November 2026</p>
         </div>
     </div>
 </div>
@@ -1481,6 +1533,17 @@
                         <span class="card-caption">5 terbaru</span>
                     </div>
                     <div id="dashboardLoans"></div>
+                </div>
+
+                <div class="card dashboard-card" style="margin-bottom: 20px;">
+                    <div class="card-heading-row">
+                        <div>
+                            <div class="card-eyebrow">PINJAMAN KAS</div>
+                            <div class="card-title"><span class="card-title-icon">👥</span> Daftar Peminjam Uang Kas</div>
+                        </div>
+                        <span class="card-caption">Transaksi terverifikasi</span>
+                    </div>
+                    <div id="kasBorrowerTable"></div>
                 </div>
 
                 <div class="dashboard-grid">
@@ -2135,6 +2198,155 @@ function updateDashboard() {
                 dashboardLoansEl.innerHTML = loanHtml;
             }
         }
+
+        renderKasBorrowerTable();
+    }
+
+    // ============ TABEL PEMINJAM UANG KAS (DASHBOARD) ============
+    function kasDayStart(value) {
+        if (!value) return null;
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return null;
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    }
+
+    function kasDiffDays(from, to) {
+        if (!from || !to) return 0;
+        return Math.max(0, Math.round((to - from) / 86400000));
+    }
+
+    function kasNormName(name) {
+        return String(name || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    function kasFormatDate(d) {
+        return d ? d.toLocaleDateString('id-ID') : '-';
+    }
+
+    function kasDurationSub(days) {
+        if (days < 30) return '';
+        const months = Math.floor(days / 30);
+        const rest = days % 30;
+        return `<span class="kas-days-sub">\u2248 ${months} bulan${rest ? ' ' + rest + ' hari' : ''}</span>`;
+    }
+
+    function buildKasBorrowerRows() {
+        const today = kasDayStart(new Date());
+        const approved = transactions.filter(t => t.status === 'approved');
+        const catOf = t => String(t.category || t.kategori || '').toLowerCase();
+        const noteOf = t => String(t.description || t.keterangan || t.note || '').toLowerCase();
+        const staffOf = t => String(t.staff || t.dariStaf || '').trim();
+        const amountOf = t => Number(t.amount ?? t.jumlah ?? 0);
+
+        const isRepayment = t =>
+            t.type === 'income' &&
+            (catOf(t).includes('pengembalian') || noteOf(t).includes('pengembalian'));
+
+        const isLoan = t =>
+            catOf(t).includes('pinjam') && !catOf(t).includes('pengembalian') && !isRepayment(t);
+
+        const byDate = (a, b) => (a.dateObj || 0) - (b.dateObj || 0) || a.idx - b.idx;
+
+        const loans = approved.filter(isLoan).map((t, idx) => ({
+            idx, staff: staffOf(t), key: kasNormName(staffOf(t)),
+            amount: amountOf(t), dateObj: kasDayStart(t.date || t.tanggal), note: t.description || t.keterangan || ''
+        })).sort(byDate);
+
+        // Pengembalian dikelompokkan per staf (nama sama), dipakai berurutan (yang paling lama dulu)
+        const repayPool = {};
+        approved.filter(isRepayment).map((t, idx) => ({
+            idx, key: kasNormName(staffOf(t)), remaining: amountOf(t), dateObj: kasDayStart(t.date || t.tanggal)
+        })).sort(byDate).forEach(r => {
+            (repayPool[r.key] = repayPool[r.key] || []).push(r);
+        });
+
+        return loans.map(loan => {
+            const pool = repayPool[loan.key] || [];
+            let need = loan.amount;
+            let paid = 0;
+            let lastPayDate = null;
+
+            for (const r of pool) {
+                if (need <= 0) break;
+                if (r.remaining <= 0) continue;
+                const use = Math.min(r.remaining, need);
+                r.remaining -= use;
+                need -= use;
+                paid += use;
+                lastPayDate = r.dateObj;
+            }
+
+            const lunas = need <= 0.5;
+            const status = lunas ? 'lunas' : (paid > 0 ? 'cicil' : 'belum');
+            const days = lunas
+                ? kasDiffDays(loan.dateObj, lastPayDate)
+                : kasDiffDays(loan.dateObj, today);
+
+            return { ...loan, status, sisa: Math.max(0, need), payDate: lunas ? lastPayDate : null, days };
+        });
+    }
+
+    function renderKasBorrowerTable() {
+        const el = document.getElementById('kasBorrowerTable');
+        if (!el) return;
+
+        const rows = buildKasBorrowerRows();
+        if (rows.length === 0) {
+            el.innerHTML = '<div class="empty-state"><div class="empty-icon">\ud83d\udced</div><div class="empty-text">Belum ada transaksi pinjam uang kas</div></div>';
+            return;
+        }
+
+        // Belum lunas paling atas (yang paling lama menunggak), lalu yang sudah lunas (terbaru dulu)
+        const open = rows.filter(r => r.status !== 'lunas').sort((a, b) => b.days - a.days);
+        const done = rows.filter(r => r.status === 'lunas').sort((a, b) => (b.payDate || 0) - (a.payDate || 0));
+
+        const totalSisa = open.reduce((sum, r) => sum + r.sisa, 0);
+        const fmt = n => `Rp ${Number(n || 0).toLocaleString('id-ID')}`;
+
+        let html = `<div class="kas-chips">
+            <div class="kas-chip kas-chip-danger">
+                <div class="kas-chip-label">Belum Lunas</div>
+                <div class="kas-chip-value">${open.length} pinjaman</div>
+            </div>
+            <div class="kas-chip kas-chip-danger">
+                <div class="kas-chip-label">Total Sisa Tunggakan</div>
+                <div class="kas-chip-value">${fmt(totalSisa)}</div>
+            </div>
+            <div class="kas-chip kas-chip-success">
+                <div class="kas-chip-label">Sudah Lunas</div>
+                <div class="kas-chip-value">${done.length} pinjaman</div>
+            </div>
+        </div>`;
+
+        html += '<div class="table-responsive kas-borrower-scroll"><table><thead><tr><th>Tgl Pinjam</th><th>Peminjam</th><th>Jumlah</th><th>Keterangan</th><th>Tgl Lunas</th><th>Lama</th></tr></thead><tbody>';
+
+        [...open, ...done].forEach(r => {
+            let badge, lama;
+            if (r.status === 'lunas') {
+                badge = '<span class="badge badge-success">Lunas</span>';
+                lama = `<span class="kas-days-paid">Lunas dalam ${r.days} hari</span>${kasDurationSub(r.days)}`;
+            } else if (r.status === 'cicil') {
+                badge = `<span class="badge badge-warning">Belum Lunas</span><span class="kas-days-sub">Sisa ${fmt(r.sisa)}</span>`;
+                lama = `<span class="kas-days-late">Menunggak ${r.days} hari</span>${kasDurationSub(r.days)}`;
+            } else {
+                badge = '<span class="badge badge-danger">Belum Lunas</span>';
+                lama = `<span class="kas-days-late">Menunggak ${r.days} hari</span>${kasDurationSub(r.days)}`;
+            }
+
+            html += `<tr>
+                <td>${kasFormatDate(r.dateObj)}</td>
+                <td>${escapeHtml(r.staff || '-')}</td>
+                <td class="amount amount-negative">${fmt(r.amount)}</td>
+                <td>${badge}</td>
+                <td>${kasFormatDate(r.payDate)}</td>
+                <td>${lama}</td>
+            </tr>`;
+        });
+
+        html += '</tbody></table></div>';
+        html += '<div class="kas-borrower-note">Status Lunas otomatis dari transaksi masuk \u201cPengembalian Pinjam Uang Kas\u201d atas nama staf yang sama. Lama tunggakan dihitung dari tanggal pinjam sampai hari ini; untuk yang lunas, sampai tanggal pengembalian.</div>';
+
+        el.innerHTML = html;
     }
 
     // ============ TRANSAKSI ============
